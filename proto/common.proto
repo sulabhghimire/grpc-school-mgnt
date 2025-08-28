@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package main;
+
+option go_package = "/proto/gen;grpc_pb";
+
+message EmptyRequest {}
+
+message Confirmation{
+    bool confirmation = 1;
+}
+
+message SortField {
+    string field = 1;
+    Order order = 2;
+}
+
+enum Order {
+    ASC = 0;
+    DESC = 1;
+}

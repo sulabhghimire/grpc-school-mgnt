@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package main;
+
+// import "validate/validate.proto";
+import "common.proto";
+
+option go_package = "/proto/gen;grpc_pb";
+
+service StudentsService {
+    rpc GetStudents (GetStudentsRequest) returns (StudentsResponse);
+    rpc AddStudents (Students) returns (Students);
+    rpc UpdateStudents (Students) returns (Students);
+    rpc DeleteStudents (StudentIds) returns (DeleteStudentsConfirmation);
+}
+
+message DeleteStudentsConfirmation {
+    string status = 1;
+    repeated string deleted_ids = 2;
+}
+
+message StudentId {
+    string id =  1;
+}
+
+message StudentIds {
+    repeated StudentId ids = 1;
+}
+
+message GetStudentsRequest {
+    Student student = 1;
+    repeated SortField sort_by = 2;
+    int32 page_number = 3;
+    int32 page_size = 4;
+}
+
+message StudentsResponse {
+    Students students = 1;
+    int32 total = 2;
+    int32 total_pages = 3;
+    int32 page_number = 4;
+    int32 page_size = 5;
+}
+
+message Student {
+    string id = 1;
+    string first_name = 2;
+    string last_name = 3;
+    string email = 4;
+    string class = 5;
+}
+
+message Students {
+    repeated Student students = 1;
+}
