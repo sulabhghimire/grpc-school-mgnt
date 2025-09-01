@@ -2,6 +2,7 @@ package main
 
 import (
 	"grpc-school-mgnt/internals/api/handlers"
+	"grpc-school-mgnt/internals/repositories/mongodb"
 	"grpc-school-mgnt/pkg/config"
 	pb "grpc-school-mgnt/proto/gen"
 	"log"
@@ -17,6 +18,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// make mongodb connection
+	mongodb.Connect(cfg.DB.URI)
+	defer mongodb.Disconnect()
 
 	grpcServer := grpc.NewServer()
 	pb.RegisterExecsServiceServer(grpcServer, &handlers.Server{})
