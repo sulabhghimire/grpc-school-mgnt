@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"grpc-school-mgnt/pkg/utils"
 	"log"
 	"time"
 
@@ -15,9 +16,9 @@ import (
 var client *mongo.Client
 
 // Connect initializes a global MongoDB client (reused with connection pool)
-func Connect(uri string) *mongo.Client {
+func Connect(uri string) error {
 	if client != nil {
-		return client
+		return nil
 	}
 
 	opts := options.Client().
@@ -26,7 +27,7 @@ func Connect(uri string) *mongo.Client {
 
 	c, err := mongo.Connect(opts)
 	if err != nil {
-		log.Fatalf("❌ Failed to connect to MongoDB: %v", err)
+		return utils.ErrorHandler(err, "❌ Failed to connect to MongoDB")
 	}
 
 	// Ping the database
@@ -34,13 +35,14 @@ func Connect(uri string) *mongo.Client {
 	defer cancel()
 
 	if err := c.Ping(ctx, readpref.Primary()); err != nil {
-		log.Fatalf("⚠️ Ping failed: %v", err)
+		return utils.ErrorHandler(err, "⚠️ Ping failed")
 	}
 
 	fmt.Println("✅ Connected to MongoDB Atlas!")
 
 	client = c
-	return client
+
+	return nil
 }
 
 func Client() *mongo.Client {

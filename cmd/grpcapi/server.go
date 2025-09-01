@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"grpc-school-mgnt/internals/api/handlers"
 	"grpc-school-mgnt/internals/repositories/mongodb"
 	"grpc-school-mgnt/pkg/config"
+	"grpc-school-mgnt/pkg/utils"
 	pb "grpc-school-mgnt/proto/gen"
 	"log"
 	"net"
@@ -20,7 +22,10 @@ func main() {
 	}
 
 	// make mongodb connection
-	mongodb.Connect(cfg.DB.URI)
+	err = mongodb.Connect(cfg.DB.URI)
+	if err != nil {
+		panic(err)
+	}
 	defer mongodb.Disconnect()
 
 	grpcServer := grpc.NewServer()
@@ -32,13 +37,15 @@ func main() {
 
 	listner, err := net.Listen("tcp", cfg.Server.Port)
 	if err != nil {
-		log.Fatal("Error listening on specified port:", err)
+		utils.ErrorHandler(err, fmt.Sprintf("Error listening on the specified port %s", cfg.Server.Port))
+		return
 	}
 
 	log.Printf("The gRPC server is running on port %s\n", cfg.Server.Port)
 	err = grpcServer.Serve(listner)
 	if err != nil {
-		log.Fatal("Error running the gRPC server:", err)
+		utils.ErrorHandler(err, "Error running gRPC server.")
+		return
 	}
 
 }
