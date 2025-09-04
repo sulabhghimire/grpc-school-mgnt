@@ -9,7 +9,7 @@ import (
 
 	"context"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func (s *Server) AddTeachers(ctx context.Context, req *pb.Teachers) (*pb.Teachers, error) {
@@ -43,12 +43,14 @@ func (s *Server) AddTeachers(ctx context.Context, req *pb.Teachers) (*pb.Teacher
 			return nil, utils.ErrorHandler(err, "error adding data to database")
 		}
 
-		objectId, ok := res.InsertedID.(primitive.ObjectID)
+		objectId, ok := res.InsertedID.(bson.ObjectID)
 		if ok {
 			newTeacher.Id = objectId.Hex()
 		}
 
-		pbTeacher := &pb.Teacher{}
+		pbTeacher := &pb.Teacher{
+			Id: newTeacher.Id,
+		}
 
 		modelVal := reflect.ValueOf(*newTeacher)
 		pbVal := reflect.ValueOf(pbTeacher).Elem()
