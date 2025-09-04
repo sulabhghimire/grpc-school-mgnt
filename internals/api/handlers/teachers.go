@@ -3,70 +3,51 @@ package handlers
 import (
 	"grpc-school-mgnt/internals/models"
 	"grpc-school-mgnt/internals/repositories/mongodb"
-	"grpc-school-mgnt/pkg/utils"
 	pb "grpc-school-mgnt/proto/gen"
 	"reflect"
 
 	"context"
 
-	"go.mongodb.org/mongo-driver/v2/bson"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (s *Server) AddTeachers(ctx context.Context, req *pb.Teachers) (*pb.Teachers, error) {
 
-	client := mongodb.Client()
-
 	newTeachers := make([]*models.Teacher, len(req.GetTeachers()))
-	for i, pbTeacher := range req.GetTeachers() {
-		modelTeacher := models.Teacher{}
-		pbVal := reflect.ValueOf(pbTeacher).Elem()
-		modelVal := reflect.ValueOf(&modelTeacher).Elem()
+	for _, pbTeacher := range req.GetTeachers() {
 
-		for j := range pbVal.NumField() {
-			pbField := pbVal.Field(j)
-			fieldName := pbVal.Type().Field(j).Name
-
-			modelField := modelVal.FieldByName(fieldName)
-
-			if modelField.IsValid() && modelField.CanSet() {
-				modelField.Set(pbField)
-			}
+		if pbTeacher.Id != "" {
+			return nil, status.Error(codes.InvalidArgument, "incorrect payload. non-empty field Id are not allowed.")
 		}
-		newTeachers[i] = &modelTeacher
 
+		newTeacher := mapTeacherPbToModel(pbTeacher)
+		newTeachers = append(newTeachers, newTeacher)
 	}
 
-	var addedTeachers []*pb.Teacher
-	for _, newTeacher := range newTeachers {
-		res, err := client.Database("school-management").Collection("teachers").InsertOne(ctx, newTeacher)
-		if err != nil {
-			return nil, utils.ErrorHandler(err, "error adding data to database")
-		}
-
-		objectId, ok := res.InsertedID.(bson.ObjectID)
-		if ok {
-			newTeacher.Id = objectId.Hex()
-		}
-
-		pbTeacher := &pb.Teacher{
-			Id: newTeacher.Id,
-		}
-
-		modelVal := reflect.ValueOf(*newTeacher)
-		pbVal := reflect.ValueOf(pbTeacher).Elem()
-
-		for i := range modelVal.NumField() {
-			modelField := modelVal.Field(i)
-			modelFieldType := modelVal.Type().Field(i)
-
-			pbField := pbVal.FieldByName(modelFieldType.Name)
-			if pbField.IsValid() && pbField.CanSet() {
-				pbField.Set(modelField)
-			}
-		}
-
-		addedTeachers = append(addedTeachers, pbTeacher)
+	addedTeachers, err := mongodb.AddTeachersToDB(ctx, newTeachers)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb.Teachers{Teachers: addedTeachers}, nil
+}
+
+func mapTeacherPbToModel(pbTeacher *pb.Teacher) *models.Teacher {
+	modelTeacher := models.Teacher{}
+	pbVal := reflect.ValueOf(pbTeacher).Elem()
+	modelVal := reflect.ValueOf(&modelTeacher).Elem()
+
+	for i := range pbVal.NumField() {
+		pbField := pbVal.Field(i)
+		fieldName := pbVal.Type().Field(i).Name
+
+		modelField := modelVal.FieldByName(fieldName)
+
+		if modelField.IsValid() && modelField.CanSet() {
+			modelField.Set(pbField)
+		}
+	}
+
+	return &modelTeacher
 }
