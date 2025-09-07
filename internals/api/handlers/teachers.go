@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"grpc-school-mgnt/internals/models"
 	"grpc-school-mgnt/internals/repositories/mongodb"
 	pb "grpc-school-mgnt/proto/gen"
@@ -58,6 +57,7 @@ func mapTeacherPbToModel(pbTeacher *pb.Teacher) *models.Teacher {
 func (s *Server) GetTeachers(ctx context.Context, req *pb.GetTeachersRequest) (*pb.TeachersResponse, error) {
 
 	buildGetTeachersFilter(req.Teacher)
+	buildSortOptions(req.GetSortBy())
 	return nil, nil
 }
 
@@ -93,7 +93,22 @@ func buildGetTeachersFilter(reqfilter *pb.Teacher) bson.M {
 			}
 		}
 	}
-	fmt.Println(filter)
 
 	return filter
+}
+
+func buildSortOptions(sortFields []*pb.SortField) bson.D {
+
+	var sortOptions bson.D
+
+	for _, sortField := range sortFields {
+		order := 1
+		if sortField.GetOrder() == pb.Order_DESC {
+			order = -1
+		}
+		sortOptions = append(sortOptions, bson.E{Key: sortField.Field, Value: order})
+	}
+
+	return sortOptions
+
 }
