@@ -27,13 +27,13 @@ func AddTeachersToDB(ctx context.Context, newTeachers []*models.Teacher) ([]*pb.
 			newTeacher.Id = objectId.Hex()
 		}
 
-		pbTeacher := mapTeacherModelToPb(newTeacher)
+		pbTeacher := MapTeacherModelToPb(newTeacher)
 		addedTeachers = append(addedTeachers, pbTeacher)
 	}
 	return addedTeachers, nil
 }
 
-func mapTeacherModelToPb(newTeacher *models.Teacher) *pb.Teacher {
+func MapTeacherModelToPb(newTeacher *models.Teacher) *pb.Teacher {
 	pbTeacher := &pb.Teacher{}
 
 	modelVal := reflect.ValueOf(*newTeacher)

@@ -3,6 +3,7 @@ package handlers
 import (
 	"grpc-school-mgnt/internals/models"
 	"grpc-school-mgnt/internals/repositories/mongodb"
+	"grpc-school-mgnt/pkg/utils"
 	pb "grpc-school-mgnt/proto/gen"
 	"reflect"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -56,9 +58,42 @@ func mapTeacherPbToModel(pbTeacher *pb.Teacher) *models.Teacher {
 
 func (s *Server) GetTeachers(ctx context.Context, req *pb.GetTeachersRequest) (*pb.TeachersResponse, error) {
 
-	buildGetTeachersFilter(req.Teacher)
-	buildSortOptions(req.GetSortBy())
-	return nil, nil
+	filter := buildGetTeachersFilter(req.Teacher)
+	sortOptions := buildSortOptions(req.GetSortBy())
+	skip, limit, page := buildPaginationOptions(req.PageNumber, req.PageSize)
+
+	client := mongodb.Client()
+	collection := client.Database("school-management").Collection("teachers")
+
+	findOptions := options.Find().SetSort(sortOptions).SetSkip(skip).SetLimit(limit)
+	cursor, err := collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, utils.ErrorHandler(err, "something went wrong.")
+	}
+	defer cursor.Close(ctx)
+
+	var teachers []*pb.Teacher
+	for cursor.Next(ctx) {
+		var teacher models.Teacher
+		err = cursor.Decode(&teacher)
+		if err != nil {
+			return nil, utils.ErrorHandler(err, "something went wrong.")
+		}
+		teachers = append(teachers, mongodb.MapTeacherModelToPb(&teacher))
+	}
+
+	totalCount, err := collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, utils.ErrorHandler(err, "something went wrong.")
+	}
+
+	return &pb.TeachersResponse{
+		Teachers:   &pb.Teachers{Teachers: teachers},
+		Total:      int32(totalCount),
+		PageSize:   int32(limit),
+		PageNumber: page,
+		TotalPages: int32((totalCount + limit - 1) / limit),
+	}, nil
 }
 
 func buildGetTeachersFilter(reqfilter *pb.Teacher) bson.M {
@@ -110,5 +145,22 @@ func buildSortOptions(sortFields []*pb.SortField) bson.D {
 	}
 
 	return sortOptions
+
+}
+
+func buildPaginationOptions(page int32, size int32) (skip int64, limit int64, pageNumber int32) {
+
+	limit = int64(size)
+	if limit < 1 {
+		limit = 10
+	}
+
+	if page < 1 {
+		page = 1
+	}
+
+	skip = (int64(page) - 1) * (limit)
+
+	return skip, limit, page
 
 }
