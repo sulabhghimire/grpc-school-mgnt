@@ -18,7 +18,7 @@ import (
 
 func (s *Server) AddTeachers(ctx context.Context, req *pb.Teachers) (*pb.Teachers, error) {
 
-	newTeachers := make([]*models.Teacher, len(req.GetTeachers()))
+	newTeachers := make([]*models.Teacher, 0, len(req.GetTeachers()))
 	for _, pbTeacher := range req.GetTeachers() {
 
 		if pbTeacher.Id != "" {
@@ -122,7 +122,7 @@ func buildGetTeachersFilter(reqfilter *pb.Teacher) bson.M {
 		fieldVal := modelVal.Field(i)
 
 		if fieldVal.IsValid() && !fieldVal.IsZero() {
-			bsonTag := strings.TrimSuffix(modelType.Field(i).Tag.Get("bson"), "omitempty")
+			bsonTag := strings.TrimSuffix(modelType.Field(i).Tag.Get("bson"), ",omitempty")
 			if strings.TrimSpace(bsonTag) != "" {
 				filter[bsonTag] = fieldVal.Interface()
 			}
