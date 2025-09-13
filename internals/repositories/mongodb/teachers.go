@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"grpc-school-mgnt/internals/models"
 	"grpc-school-mgnt/pkg/utils"
-	"reflect"
 
 	pb "grpc-school-mgnt/proto/gen"
 
@@ -37,37 +36,10 @@ func AddTeachersToDB(ctx context.Context, newTeachers []*models.Teacher) ([]*pb.
 			newTeacher.Id = objectId
 		}
 
-		pbTeacher := MapTeacherModelToPb(newTeacher)
+		pbTeacher := decodeEntity(&pb.Teacher{}, &newTeacher)
 		addedTeachers = append(addedTeachers, pbTeacher)
 	}
 	return addedTeachers, nil
-}
-
-func MapTeacherModelToPb(newTeacher *models.Teacher) *pb.Teacher {
-	pbTeacher := &pb.Teacher{}
-
-	modelVal := reflect.ValueOf(*newTeacher)
-	pbVal := reflect.ValueOf(pbTeacher).Elem()
-
-	for i := range modelVal.NumField() {
-		modelField := modelVal.Field(i)
-		modelFieldType := modelVal.Type().Field(i)
-
-		pbField := pbVal.FieldByName(modelFieldType.Name)
-		if !pbField.IsValid() || !pbField.CanSet() {
-			continue
-		}
-
-		// Special case: convert ObjectID → string
-		if modelField.Type() == reflect.TypeOf(bson.ObjectID{}) {
-			oid := modelField.Interface().(bson.ObjectID)
-			pbField.SetString(oid.Hex())
-		} else {
-			// Otherwise copy directly
-			pbField.Set(modelField)
-		}
-	}
-	return pbTeacher
 }
 
 func GetTeachersFromDB(ctx context.Context, sortOptions bson.D, skip int64, limit int64, filter bson.M) ([]*pb.Teacher, int64, error) {
@@ -93,7 +65,14 @@ func GetTeachersFromDB(ctx context.Context, sortOptions bson.D, skip int64, limi
 		if err != nil {
 			return nil, 0, utils.ErrorHandler(err, "something went wrong.")
 		}
-		teachers = append(teachers, MapTeacherModelToPb(&teacher))
+		pbTeacher := &pb.Teacher{}
+		result := decodeEntity(pbTeacher, &teacher)
+		teachers = append(teachers, result)
+	}
+
+	err = cursor.Err()
+	if err != nil {
+		return nil, 0, utils.ErrorHandler(err, "something went wrong.")
 	}
 
 	totalCount, err := collection.CountDocuments(ctx, filter)
