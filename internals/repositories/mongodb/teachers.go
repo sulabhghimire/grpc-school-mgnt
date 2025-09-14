@@ -81,3 +81,36 @@ func GetTeachersFromDB(ctx context.Context, sortOptions bson.D, skip int64, limi
 	}
 	return teachers, totalCount, nil
 }
+
+func ModifyTeachersDB(ctx context.Context, modelTeachers []*models.Teacher) ([]*pb.Teacher, error) {
+	client := Client()
+
+	var updatedTeachers []*pb.Teacher
+
+	for _, modelTeacher := range modelTeachers {
+
+		// Convert modelTeacher to bson document
+		modelDoc, err := bson.Marshal(modelTeacher)
+		if err != nil {
+			return nil, utils.ErrorHandler(err, "something went wrong.")
+		}
+
+		var updatedDoc bson.M
+		err = bson.Unmarshal(modelDoc, &updatedDoc)
+		if err != nil {
+			return nil, utils.ErrorHandler(err, "something went wrong.")
+		}
+
+		// Remove _id if present in updatedDoc
+		delete(updatedDoc, "_id")
+
+		_, err = client.Database("school-management").Collection("teachers").UpdateOne(ctx, bson.M{"_id": modelTeacher.Id}, bson.M{"$set": updatedDoc})
+		if err != nil {
+			return nil, utils.ErrorHandler(err, fmt.Sprintf("error updating teacher with id: %s", modelTeacher.Id))
+		}
+
+		updatedTeacher := decodeEntity(&pb.Teacher{}, modelTeacher)
+		updatedTeachers = append(updatedTeachers, updatedTeacher)
+	}
+	return updatedTeachers, nil
+}

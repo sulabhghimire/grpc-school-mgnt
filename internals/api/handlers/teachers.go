@@ -56,3 +56,23 @@ func (s *Server) GetTeachers(ctx context.Context, req *pb.GetTeachersRequest) (*
 		TotalPages: int32((totalCount + limit - 1) / limit),
 	}, nil
 }
+
+func (c *Server) UpdateTeachers(ctx context.Context, req *pb.Teachers) (*pb.Teachers, error) {
+
+	var modelTeachers []*models.Teacher
+	for _, teacher := range req.Teachers {
+		if teacher.Id == "" {
+			return nil, status.Error(codes.InvalidArgument, "please provide id for every teacher")
+		}
+		modelTeacher := mapTeacherPbToModel(teacher)
+		modelTeachers = append(modelTeachers, modelTeacher)
+	}
+
+	updatedTeachers, err := mongodb.ModifyTeachersDB(ctx, modelTeachers)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.Teachers{Teachers: updatedTeachers}, nil
+
+}

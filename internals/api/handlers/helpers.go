@@ -103,8 +103,20 @@ func mapTeacherPbToModel(pbTeacher *pb.Teacher) *models.Teacher {
 
 		modelField := modelVal.FieldByName(fieldName)
 
-		if modelField.IsValid() && modelField.CanSet() {
-			modelField.Set(pbField)
+		if !modelField.IsValid() || !modelField.CanSet() {
+			continue
+		}
+
+		// If model field is ObjectID and pb field is string → convert
+		if modelField.Type() == reflect.TypeOf(bson.ObjectID{}) && pbField.Kind() == reflect.String {
+			if oid, err := bson.ObjectIDFromHex(pbField.String()); err == nil {
+				modelField.Set(reflect.ValueOf(oid))
+			}
+		} else {
+			// Direct assignment if types match
+			if pbField.Type().AssignableTo(modelField.Type()) {
+				modelField.Set(pbField)
+			}
 		}
 	}
 
