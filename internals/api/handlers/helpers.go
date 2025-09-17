@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"grpc-school-mgnt/internals/models"
 	pb "grpc-school-mgnt/proto/gen"
 	"reflect"
 	"strings"
@@ -92,10 +91,10 @@ func buildPaginationOptions(page int32, size int32) (skip int64, limit int64, pa
 
 }
 
-func mapTeacherPbToModel(pbTeacher *pb.Teacher) *models.Teacher {
-	modelTeacher := models.Teacher{}
-	pbVal := reflect.ValueOf(pbTeacher).Elem()
-	modelVal := reflect.ValueOf(&modelTeacher).Elem()
+func mapPbToModel[P any, M any](pbStruct P, newModel func() *M) *M {
+	model := newModel()
+	pbVal := reflect.ValueOf(pbStruct).Elem()
+	modelVal := reflect.ValueOf(&model).Elem()
 
 	for i := range pbVal.NumField() {
 		pbField := pbVal.Field(i)
@@ -120,5 +119,5 @@ func mapTeacherPbToModel(pbTeacher *pb.Teacher) *models.Teacher {
 		}
 	}
 
-	return &modelTeacher
+	return model
 }

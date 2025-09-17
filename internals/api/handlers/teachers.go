@@ -21,7 +21,7 @@ func (s *Server) AddTeachers(ctx context.Context, req *pb.Teachers) (*pb.Teacher
 			return nil, status.Error(codes.InvalidArgument, "incorrect payload. non-empty field Id are not allowed.")
 		}
 
-		newTeacher := mapTeacherPbToModel(pbTeacher)
+		newTeacher := mapPbToModel(pbTeacher, func() *models.Teacher { return &models.Teacher{} })
 		newTeachers = append(newTeachers, newTeacher)
 	}
 
@@ -64,7 +64,7 @@ func (c *Server) UpdateTeachers(ctx context.Context, req *pb.Teachers) (*pb.Teac
 		if teacher.Id == "" {
 			return nil, status.Error(codes.InvalidArgument, "please provide id for every teacher")
 		}
-		modelTeacher := mapTeacherPbToModel(teacher)
+		modelTeacher := mapPbToModel(teacher, func() *models.Teacher { return &models.Teacher{} })
 		modelTeachers = append(modelTeachers, modelTeacher)
 	}
 
