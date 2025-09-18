@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"grpc-school-mgnt/internals/models"
 	"grpc-school-mgnt/internals/repositories/mongodb"
 	"grpc-school-mgnt/pkg/utils"
@@ -8,6 +9,7 @@ import (
 
 	"context"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -75,4 +77,28 @@ func (c *Server) UpdateTeachers(ctx context.Context, req *pb.Teachers) (*pb.Teac
 
 	return &pb.Teachers{Teachers: updatedTeachers}, nil
 
+}
+
+func (s *Server) DeleteTeachers(ctx context.Context, req *pb.TeacherIds) (*pb.DeleteTeachersConfirmation, error) {
+
+	var teacherIds []bson.ObjectID
+	for _, id := range req.Ids {
+		objId, err := stringToObjectId(id.Id)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+		teacherIds = append(teacherIds, *objId)
+	}
+
+	deletedCount, err := mongodb.DeleteTeacherByIds(ctx, teacherIds)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	var deletedIds []string
+	for _, id := range req.Ids {
+		deletedIds = append(deletedIds, id.Id)
+	}
+
+	return &pb.DeleteTeachersConfirmation{Status: fmt.Sprintf("Deleted %d teachers successfully", deletedCount), DeletedIds: deletedIds}, nil
 }

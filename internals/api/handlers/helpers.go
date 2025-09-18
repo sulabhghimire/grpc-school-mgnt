@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
+	"grpc-school-mgnt/pkg/utils"
 	pb "grpc-school-mgnt/proto/gen"
 	"reflect"
 	"strings"
@@ -121,3 +123,15 @@ func mapPbToModel[P any, M any](pbStruct P, newModel func() *M) *M {
 
 	return model
 }
+
+func stringToObjectId(val string) (*bson.ObjectID, error) {
+	objectId, err := bson.ObjectIDFromHex(val)
+	if err != nil {
+		return nil, utils.ErrorHandler(err, fmt.Sprintf("please provide valid teacher id %d", val))
+	}
+	return &objectId, nil
+}
+
+// func objectIdToString(oid bson.ObjectID) string {
+// 	return oid.Hex()
+// }

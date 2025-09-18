@@ -114,3 +114,21 @@ func ModifyTeachersDB(ctx context.Context, modelTeachers []*models.Teacher) ([]*
 	}
 	return updatedTeachers, nil
 }
+
+func DeleteTeacherByIds(ctx context.Context, teacherIds []bson.ObjectID) (int64, error) {
+
+	client := Client()
+	filter := bson.M{
+		"_id": bson.M{
+			"$in": teacherIds,
+		},
+	}
+
+	res, err := client.Database("school-management").Collection("teachers").DeleteMany(ctx, filter)
+	if err != nil {
+		return 0, utils.ErrorHandler(err, "error deleting teacher")
+	}
+
+	return res.DeletedCount, nil
+
+}
